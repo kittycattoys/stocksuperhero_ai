@@ -10,3 +10,5 @@ transformers
 torch
 gguf
 sentencepiece
+torchvision 
+torchaudio 
