@@ -1,0 +1,8 @@
+streamlit 
+pandas
+altair
+supabase
+plotly
+matplotlib
+streamlit-aggrid
+yfinance
