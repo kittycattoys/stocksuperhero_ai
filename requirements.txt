@@ -6,3 +6,7 @@ plotly
 matplotlib
 streamlit-aggrid
 yfinance
+transformers
+torch
+gguf
+sentencepiece
