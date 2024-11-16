@@ -23,6 +23,6 @@ df_dim = st.session_state['df_dim']
 
 input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
 input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
-df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=100)
+df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=10)
 st.write("Vector Search Results")
 st.dataframe(df_vector_search)
