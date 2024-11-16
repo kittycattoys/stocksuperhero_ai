@@ -16,7 +16,7 @@ selected_stock_symbol = 'SBUX'
     
 # Ensure 'df_dim' is loaded
 if 'df_dim' not in st.session_state:
-    response_dim = supabase.table('dim_det').select('sym, pst, cn, ind, sec, ps, pst, v_ps, v_rsi, v_ps_string, v_rsi_string').eq('sym', selected_stock_symbol).execute()
+    response_dim = supabase.table('dim_det').select(st.secrets["supabase"]["top_query"]).eq('sym', selected_stock_symbol).execute()
     st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
 
 df_dim = st.session_state['df_dim']
