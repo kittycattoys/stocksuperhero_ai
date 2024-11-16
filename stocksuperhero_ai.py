@@ -9,11 +9,12 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import sentencepiece
 
 print(sentencepiece.__version__)
-model_id = "Jeffsimpsons/Llama-3.2-1B-Instruct-Q4_K_M-GGUF"
-filename = "llama-3.2-1b-instruct-q4_k_m.gguf"
 
-tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename)
-model = AutoModelForCausalLM.from_pretrained(model_id, gguf_file=filename)
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
 
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
@@ -54,12 +55,14 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-# Ask a question
-question = "What is the capital of France?"
-inputs = tokenizer(question, return_tensors="pt")
-
-# Generate and decode the response
-outputs = model.generate(**inputs, max_length=50)
-response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-print("Response:", response)
+    with st.chat_message("assistant"):
+        tokens_input = tokenizer(prompt, return_tensors="pt")
+        output_ids = model.generate(**tokens_input, 
+                                    min_length=200, 
+                                    max_length=300, 
+                                    temperature=0.8,  
+                                    #top_p=0.9 
+                                   )
+        stream = tokenizer.decode(output_ids[0], skip_special_tokens=False)
+        response = st.markdown(stream)
+    st.session_state.messages.append({"role": "assistant", "content": response})
