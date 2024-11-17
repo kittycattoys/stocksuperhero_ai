@@ -7,6 +7,8 @@ import time
 from functions.vector_search import get_supabase_dataframe
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import sentencepiece
+import requests
+from huggingface_hub import InferenceClient
 
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
@@ -41,11 +43,10 @@ if st.button(f"Run Vector Search {selected_stock_symbol}"):
     input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
     input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
     df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match_count=400)
+    columns_to_keep = ["sym", "v_ps_string", "cos_sim", "cos_sim_v_ps", "v_rsi_string", "cos_sim_v_rsi"]
     st.write("Vector Search Results")
-    st.dataframe(df_vector_search)
 
-
-
+    st.dataframe(df_vector_search[columns_to_keep])
 
 
 
@@ -53,7 +54,7 @@ if st.button(f"Run Vector Search {selected_stock_symbol}"):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-with st.expander("Expander with scrolling content", expanded=True):
+with st.expander("Expander with scrolling content", expanded=False):
    with st.container(height=300):
         # Display chat messages from history on app rerun
         for message in st.session_state.messages:
@@ -70,6 +71,35 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     with st.chat_message("assistant"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "assistant", "content": prompt})
+
+
+
+
+'''
+API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
+headers = {"Authorization": "Bearer st.secrets["huggingface"]["token"]"}
+payload = {
+    "inputs": "Why is the sky blue?",
+}
+
+response = requests.post(API_URL, headers=headers, json=payload)
+print("jeffy")
+print(response.json())
+
+
+client = InferenceClient(api_key=st.secrets["huggingface"]["token"])
+
+for message in client.chat_completion(
+	model="meta-llama/Llama-3.2-1B-Instruct",
+	messages=[{"role": "user", "content": "What is the capital of France?"}],
+	max_tokens=500,
+	stream=True,
+):
+    print(message.choices[0].delta.content, end="")
+
+'''
+
+
 
 '''
 tokens_input = tokenizer(prompt, return_tensors="pt")
