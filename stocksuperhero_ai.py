@@ -26,15 +26,21 @@ ps_weight = st.slider(
 
 rsi_weight = 1 - ps_weight
 
+if 'df_dim' not in st.session_state:
+    response_dim = supabase.table('dim_det').select('sym, pst, cn, ind, sec, ps, pst, v_ps_string, v_rsi_string, v_ps, v_rsi').eq('sym', selected_stock_symbol).execute()
+    st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
+    
+df_dim = st.session_state['df_dim']
+st.dataframe(df_dim)
+
 # Display the selected value
 st.write(f"Selected value: {ps_weight}")
 
-if st.button(f"Run Vector Search {selected_stock_symbol}"):
-    response_dim = supabase.table('dim_det').select('sym, pst, cn, ind, sec, ps, pst, v_ps_string, v_rsi_string, v_ps, v_rsi').eq('sym', selected_stock_symbol).execute()
-    st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
-    df_dim = st.session_state['df_dim']
-    st.dataframe(df_dim)
+options = [df_dim["sec"][0], df_dim["ind"][0], "All", "Selected Filters"]
+option = st.selectbox("Search type:", options)
+selected_index = options.index(option)
 
+if st.button(f"Run Vector Search {selected_stock_symbol}"):
     input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
     input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
     df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match_count=400)
