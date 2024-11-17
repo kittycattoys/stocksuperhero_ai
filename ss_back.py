@@ -11,42 +11,32 @@ import sentencepiece
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
 
+'''
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+
+if tokenizer.pad_token is None:
+    tokenizer.pad_token = tokenizer.eos_token
+'''
+
 # Supabase connection details
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 supabase: Client = create_client(url, key)
 selected_stock_symbol = 'SBUX'
-st.title(selected_stock_symbol)
     
-# Create a slider
-value = st.slider(
-    label="Select a value",
-    min_value=0,  # Minimum value
-    max_value=100,  # Maximum value
-    step=1,  # Increment step
-    value=50,  # Initial value
-)
-
-# Display the selected value
-st.write(f"Selected value: {value}")
-
-if st.button(f"Run Vector Search {selected_stock_symbol}"):
+# Ensure 'df_dim' is loaded
+if 'df_dim' not in st.session_state:
     response_dim = supabase.table('dim_det').select(st.secrets["supabase"]["top_query"]).eq('sym', selected_stock_symbol).execute()
     st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
-    df_dim = st.session_state['df_dim']
-    st.dataframe(df_dim)
 
-    input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
-    input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
-    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=10)
-    st.write("Vector Search Results")
-    st.dataframe(df_vector_search)
+df_dim = st.session_state['df_dim']
 
-
-
-
-
-
+input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
+input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
+df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=10)
+st.write("Vector Search Results")
+st.dataframe(df_vector_search)
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
