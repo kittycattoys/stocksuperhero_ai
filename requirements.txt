@@ -12,3 +12,4 @@ gguf
 sentencepiece
 torchvision 
 torchaudio 
+requests
