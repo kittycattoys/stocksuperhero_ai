@@ -7,41 +7,57 @@ import time
 from functions.vector_search import get_supabase_dataframe
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import sentencepiece
+import requests
+from huggingface_hub import InferenceClient
+
+API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
+headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
 
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
-
-'''
-tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
-model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
-
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
-'''
 
 # Supabase connection details
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 supabase: Client = create_client(url, key)
-selected_stock_symbol = 'SBUX'
+selected_stock_symbol = 'BAX'
+st.title(selected_stock_symbol)
     
-# Ensure 'df_dim' is loaded
-if 'df_dim' not in st.session_state:
-    response_dim = supabase.table('dim_det').select(st.secrets["supabase"]["top_query"]).eq('sym', selected_stock_symbol).execute()
+# Create a slider
+ps_weight = st.slider(
+    label="PS Weight",
+    min_value=0.0,  # Minimum value
+    max_value=1.0,  # Maximum value
+    step=0.05,  # Increment step
+    value=0.05,  # Initial value
+)
+
+rsi_weight = 1 - ps_weight
+
+# Display the selected value
+st.write(f"Selected value: {ps_weight}")
+
+if st.button(f"Run Vector Search {selected_stock_symbol}"):
+    response_dim = supabase.table('dim_det').select('sym, pst, cn, ind, sec, ps, pst, v_ps_string, v_rsi_string, v_ps, v_rsi').eq('sym', selected_stock_symbol).execute()
     st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
+    df_dim = st.session_state['df_dim']
+    st.dataframe(df_dim)
 
-df_dim = st.session_state['df_dim']
+    input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
+    input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
+    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match_count=400)
+    columns_to_keep = ["sym", "v_ps_string", "cos_sim", "cos_sim_v_ps", "v_rsi_string", "cos_sim_v_rsi"]
+    st.write("Vector Search Results")
 
-input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
-input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
-df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=10)
-st.write("Vector Search Results")
-st.dataframe(df_vector_search)
+    st.dataframe(df_vector_search[columns_to_keep])
+
+
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-with st.expander("Expander with scrolling content", expanded=True):
+with st.expander("Expander with scrolling content", expanded=False):
    with st.container(height=300):
         # Display chat messages from history on app rerun
         for message in st.session_state.messages:
@@ -56,8 +72,34 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": prompt})
+        payload = {
+            "inputs": f"{prompt}",
+        }
+        response = requests.post(API_URL, headers=headers, json=payload)
+        responsejson = response.json()
+        generated_text = responsejson[0]["generated_text"]
+        st.markdown(generated_text)
+
+    st.session_state.messages.append({"role": "assistant", "content": generated_text})
+
+
+
+
+'''
+
+client = InferenceClient(api_key=st.secrets["huggingface"]["token"])
+
+for message in client.chat_completion(
+	model="meta-llama/Llama-3.2-1B-Instruct",
+	messages=[{"role": "user", "content": "What is the capital of France?"}],
+	max_tokens=500,
+	stream=True,
+):
+    print(message.choices[0].delta.content, end="")
+
+'''
+
+
 
 '''
 tokens_input = tokenizer(prompt, return_tensors="pt")

@@ -1,14 +1,8 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 from supabase import create_client, Client
-from datetime import datetime
-import time
 from functions.vector_search import get_supabase_dataframe
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import sentencepiece
 import requests
-from huggingface_hub import InferenceClient
 
 API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
 headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
@@ -75,44 +69,9 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
         payload = {
             "inputs": f"{prompt}",
         }
-
         response = requests.post(API_URL, headers=headers, json=payload)
         responsejson = response.json()
         generated_text = responsejson[0]["generated_text"]
-        print("generated_text")
-        print(generated_text)
         st.markdown(generated_text)
 
     st.session_state.messages.append({"role": "assistant", "content": generated_text})
-
-
-
-
-'''
-
-client = InferenceClient(api_key=st.secrets["huggingface"]["token"])
-
-for message in client.chat_completion(
-	model="meta-llama/Llama-3.2-1B-Instruct",
-	messages=[{"role": "user", "content": "What is the capital of France?"}],
-	max_tokens=500,
-	stream=True,
-):
-    print(message.choices[0].delta.content, end="")
-
-'''
-
-
-
-'''
-tokens_input = tokenizer(prompt, return_tensors="pt")
-output_ids = model.generate(**tokens_input, 
-                            min_length=200, 
-                            max_length=300, 
-                            temperature=0.8,  
-                            #top_p=0.9 
-                           )
-stream = tokenizer.decode(output_ids[0], skip_special_tokens=False)
-response = st.markdown(stream)
-'''
-    
