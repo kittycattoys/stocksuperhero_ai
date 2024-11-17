@@ -10,6 +10,9 @@ import sentencepiece
 import requests
 from huggingface_hub import InferenceClient
 
+API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
+headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
+
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
 
@@ -17,7 +20,7 @@ st.set_page_config(layout="wide")
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 supabase: Client = create_client(url, key)
-selected_stock_symbol = 'SBUX'
+selected_stock_symbol = 'BAX'
 st.title(selected_stock_symbol)
     
 # Create a slider
@@ -69,23 +72,23 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": prompt})
+        payload = {
+            "inputs": f"{prompt}",
+        }
+
+        response = requests.post(API_URL, headers=headers, json=payload)
+        responsejson = response.json()
+        generated_text = responsejson[0]["generated_text"]
+        print("generated_text")
+        print(generated_text)
+        st.markdown(generated_text)
+
+    st.session_state.messages.append({"role": "assistant", "content": generated_text})
 
 
 
 
 '''
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
-headers = {"Authorization": "Bearer st.secrets["huggingface"]["token"]"}
-payload = {
-    "inputs": "Why is the sky blue?",
-}
-
-response = requests.post(API_URL, headers=headers, json=payload)
-print("jeffy")
-print(response.json())
-
 
 client = InferenceClient(api_key=st.secrets["huggingface"]["token"])
 
