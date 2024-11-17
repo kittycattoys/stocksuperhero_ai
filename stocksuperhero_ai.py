@@ -4,16 +4,14 @@ from supabase import create_client, Client
 from functions.vector_search import get_supabase_dataframe
 import requests
 
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B-Instruct"
+API_URL = st.secrets["other"]["api"]
 headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
 
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
 
 # Supabase connection details
-url = st.secrets["supabase"]["url"]
-key = st.secrets["supabase"]["key"]
-supabase: Client = create_client(url, key)
+supabase: Client = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
 selected_stock_symbol = 'BAX'
 st.title(selected_stock_symbol)
     
