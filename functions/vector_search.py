@@ -10,7 +10,7 @@ def init_supabase() -> Client:
     return supabase
 
 # Function to call the match_vectors RPC
-def get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match_count):
+def get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, where_clause_1, where_clause_2, match_count):
     supabase: Client = init_supabase()
 
     # RPC call to the match_vectors function
@@ -19,6 +19,8 @@ def get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match
         "query_v_rsi": input_v_rsi,
         "ps_weight": ps_weight,
         "rsi_weight": rsi_weight,
+        "where_clause_1": where_clause_1,
+        "where_clause_2": where_clause_2,
         "match_count": match_count,
     }).execute()
     
