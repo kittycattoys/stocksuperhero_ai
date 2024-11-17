@@ -19,26 +19,28 @@ selected_stock_symbol = 'SBUX'
 st.title(selected_stock_symbol)
     
 # Create a slider
-value = st.slider(
-    label="Select a value",
-    min_value=0,  # Minimum value
-    max_value=100,  # Maximum value
-    step=1,  # Increment step
-    value=50,  # Initial value
+ps_weight = st.slider(
+    label="PS Weight",
+    min_value=0.0,  # Minimum value
+    max_value=1.0,  # Maximum value
+    step=0.05,  # Increment step
+    value=0.05,  # Initial value
 )
 
+rsi_weight = 1 - ps_weight
+
 # Display the selected value
-st.write(f"Selected value: {value}")
+st.write(f"Selected value: {ps_weight}")
 
 if st.button(f"Run Vector Search {selected_stock_symbol}"):
-    response_dim = supabase.table('dim_det').select(st.secrets["supabase"]["top_query"]).eq('sym', selected_stock_symbol).execute()
+    response_dim = supabase.table('dim_det').select('sym, pst, cn, ind, sec, ps, pst, v_ps_string, v_rsi_string, v_ps, v_rsi').eq('sym', selected_stock_symbol).execute()
     st.session_state['df_dim'] = pd.DataFrame(response_dim.data)
     df_dim = st.session_state['df_dim']
     st.dataframe(df_dim)
 
     input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
     input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
-    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, match_count=10)
+    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, match_count=400)
     st.write("Vector Search Results")
     st.dataframe(df_vector_search)
 
