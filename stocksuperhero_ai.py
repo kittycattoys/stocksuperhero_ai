@@ -40,16 +40,19 @@ options = [df_dim["sec"][0], df_dim["ind"][0], "All", "Selected Filters"]
 option = st.selectbox("Search type:", options)
 selected_index = options.index(option)
 
-where_clause = None
 
 if selected_index == 0:
     where_clause_1 = 'sec'
     where_clause_2 = option
+    operand = ' = '
 if selected_index == 1:
     where_clause_1 = 'ind'
     where_clause_2 = option
-if selected_index == 1:
-    where_clause = f"WHERE sec LIKE '%'"
+    operand = ' = '
+if selected_index == 2:
+    where_clause_1 = 'ind'
+    where_clause_2 = "blank"
+    operand = ' != '
 
 print(where_clause_1)
 print(where_clause_2)
@@ -57,7 +60,7 @@ print(where_clause_2)
 if st.button(f"Run Vector Search {selected_stock_symbol}"):
     input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
     input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
-    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, where_clause_1, where_clause_2, match_count=400)
+    df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, where_clause_1, where_clause_2, operand, match_count=400)
     columns_to_keep = ["sym", "v_ps_string", "cos_sim", "cos_sim_v_ps", "v_rsi_string", "cos_sim_v_rsi"]
     st.write("Vector Search Results")
 
