@@ -138,30 +138,13 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
-        '''
-        payload = {
-            "inputs": f"{prompt}",
-        }
-        response = requests.post(API_URL, headers=headers, json=payload)
-        responsejson = response.json()
-        generated_text = responsejson[0]["generated_text"]
-        st.markdown(generated_text)
-        '''
-
         jeffy = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"{prompt}"},
                 {"role": "assistant", "content": ""},
                 ]
-
-        print(jeffy)
-
         chater = client.chat_completion(jeffy, max_tokens=170, stream=False)
-        print("CHATTER!!!!!!!!!!!!!:")
-        print(chater)
         chater_extract = chater.choices[0].message.content
-        print("chatter extract")
-        print(chater_extract)
         st.markdown(chater_extract)
 
     st.session_state.messages.append({"role": "assistant", "content": chater_extract})
