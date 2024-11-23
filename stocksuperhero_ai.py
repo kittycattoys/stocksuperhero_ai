@@ -4,6 +4,7 @@ from supabase import create_client, Client
 from functions.vector_search import get_supabase_dataframe
 import requests, os
 from huggingface_hub import InferenceClient, login
+from functions.bar import plot_bar_chart
 
 #API_URL = st.secrets["other"]["api"]
 #headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
@@ -21,16 +22,12 @@ function_definitions = """[
         "parameters": {
             "type": "object",
             "required": [
-                "sym", "barf"
+                "highlight_symbol"
             ],
             "properties": {
-                "sym": {
+                "highlight_symbol": {
                     "type": "string",
                     "description": "The stock symbol required for chart."
-                },
-                "barf": {
-                    "type": "int",
-                    "description": "Other do not use."
                 }
             }
         }
@@ -145,6 +142,30 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
                 ]
         chater = client.chat_completion(jeffy, max_tokens=170, stream=False)
         chater_extract = chater.choices[0].message.content
-        st.markdown(chater_extract)
+
+        if chater_extract == "Error No Function Found":
+            st.markdown("Function Not Found")
+            st.markdown(chater_extract)
+        else:
+            st.markdown("Function Found")
+            st.markdown(chater_extract)
+            function_call = chater_extract.split('(')[1].split(')')[0]
+            print("!!!!!!!!!!!!!!!!! AUDIT FUNCTION CALL !!!!!!!!!!!!!!!!!")
+            print(function_call.split("=")[1])     
+            symbol = function_call.split("=")[1]  
+            st.markdown("Trying to Create Bar Chart")
+            fig_bar = plot_bar_chart(df_dim, symbol)
+
+            if fig_bar:
+                st.plotly_chart(fig_bar, use_container_width=True)
+            else:
+                st.write("ERROR No data available to display in the bar chart.")
+
+        #dataz = ast.literal_eval(function_call.split('function_data=')[1].strip())
+        #print("function_data")
+        #print(dataz[0]["highlight_symbol"])
+
+        # Bar Chart
+
 
     st.session_state.messages.append({"role": "assistant", "content": chater_extract})
