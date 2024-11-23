@@ -2,13 +2,64 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from functions.vector_search import get_supabase_dataframe
-import requests
+import requests, os
+from huggingface_hub import InferenceClient, login
 
-API_URL = st.secrets["other"]["api"]
-headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
+#API_URL = st.secrets["other"]["api"]
+#headers = {"Authorization": f"Bearer {st.secrets['huggingface']['token']}"}
 
 # Set page configuration as the first Streamlit command
 st.set_page_config(layout="wide")
+
+client = InferenceClient("meta-llama/Llama-3.2-3B-Instruct", token=st.secrets['huggingface']['token'])
+
+# Define the function definition
+function_definitions = """[
+    {   "type": "function",
+        "name": "create_ps_price_sales_bar_chart", 
+        "description": "Creates a price-to-sales ps (price to sales) bar chart comparing multiple sym (stock symbols) with sym on the x-axis and ps (price to sales ratio) on y-axis highlight highlight_symbol.", 
+        "parameters": {
+            "type": "object",
+            "required": [
+                "sym", "barf"
+            ],
+            "properties": {
+                "sym": {
+                    "type": "string",
+                    "description": "The stock symbol required for chart."
+                },
+                "barf": {
+                    "type": "int",
+                    "description": "Other do not use."
+                }
+            }
+        }
+    },
+    {   "type": "function",
+        "name": "calculate_average_metric", 
+        "description": "Calculates the average of a ps column in a dataframe for the required sym symbol", 
+        "parameters": {
+            "required": ["sym"]
+        }
+    }
+]"""
+
+# Define the system prompt using your preferred format
+system_prompt = """You are an expert in composing functions. Use the provided JSON functions to answer the question. 
+Return function calls in this format: [func_name(param1=value1, param2=value2)]. Do not make up any data. Use only what is provided.
+If no function applies return Error No Function Found. If required parameters are missing return Missing Params.
+Do not include any other text.\n\n{functions}\n""".format(functions=function_definitions)
+
+query = "calculate average"
+
+# Create the input prompt
+input_prompt = f"""
+<|start_header_id|>system<|end_header_id|>
+{system_prompt}
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+{query}
+<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+"""
 
 # Supabase connection details
 supabase: Client = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
@@ -87,6 +138,7 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
+        '''
         payload = {
             "inputs": f"{prompt}",
         }
@@ -94,5 +146,22 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
         responsejson = response.json()
         generated_text = responsejson[0]["generated_text"]
         st.markdown(generated_text)
+        '''
 
-    st.session_state.messages.append({"role": "assistant", "content": generated_text})
+        jeffy = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"{prompt}"},
+                {"role": "assistant", "content": ""},
+                ]
+
+        print(jeffy)
+
+        chater = client.chat_completion(jeffy, max_tokens=170, stream=False)
+        print("CHATTER!!!!!!!!!!!!!:")
+        print(chater)
+        chater_extract = chater.choices[0].message.content
+        print("chatter extract")
+        print(chater_extract)
+        st.markdown(chater_extract)
+
+    st.session_state.messages.append({"role": "assistant", "content": chater_extract})
