@@ -38,6 +38,13 @@ function_definitions = """[
         "parameters": {
             "required": ["sym"]
         }
+    },
+       {   "type": "function",
+        "name": "ask_pandas_dataframe_table_question", 
+        "description": "Perform simple calculations or summarizations from a data table via prompt input and provide and answer.", 
+        "parameters": {
+            "required": ["question"]
+        }
     }
 ]"""
 
@@ -119,6 +126,24 @@ if st.button(f"Run Vector Search {selected_stock_symbol}"):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Extract the assistant data
+def ask_pandas_dataframe_table_question(question):
+    # Split the response by the "assistant" keyword and get the part after it
+    # Represent the DataFrame as a string
+    df_string = st.session_state['ai_dataframe'].to_string(index=False)
+
+    # Input prompt to instruct the model
+    input_prompt = f"""
+    You are an AI assistant that analyzes data tables. 
+    Here is the table:
+    {df_string}
+
+    Answer the following question:
+    {question}
+
+    Use only the data provided and Return the FINAL answer along with a python formula that can be used. Do not return any other text."""
+    return input_prompt    
+
 with st.expander("Expander with scrolling content", expanded=False):
    with st.container(height=300):
         # Display chat messages from history on app rerun
@@ -134,6 +159,7 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
+        big_boy_jeffy = None
         jeffy = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"{prompt}"},
@@ -142,9 +168,10 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
         chater = client.chat_completion(jeffy, max_tokens=170, stream=False)
         chater_extract = chater.choices[0].message.content
 
-        if chater_extract == "Error No Function Found":
+        if chater_extract == "Error No Function Found" or chater_extract == "Missing Params":
             st.markdown("Function Not Found")
             st.markdown(chater_extract)
+            big_boy_jeffy = chater_extract
         else:
             st.markdown("Function Found")
             st.markdown(chater_extract)
@@ -152,20 +179,38 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
             print("!!!!!!!!!!!!!!!!! AUDIT FUNCTION CALL !!!!!!!!!!!!!!!!!")
             print(function_call.split("=")[1])     
             symbol = function_call.split("=")[1]  
-            cleaned_symbol = symbol.replace('"', '')
-            st.markdown("Trying to Create Bar Chart")
-            fig_bar = plot_bar_chart(st.session_state['ai_dataframe'], cleaned_symbol)
+            cleaned_extract = symbol.replace('"', '')
 
-            if fig_bar:
-                st.plotly_chart(fig_bar, use_container_width=True)
-            else:
-                st.write("ERROR No data available to display in the bar chart.")
+            if "ask_pandas_dataframe_table_question" in chater_extract:
+                get_full_formatted_prompt = ask_pandas_dataframe_table_question(cleaned_extract)
+                print("!!!! get_full_formatted_prompt !!!!")
+                print(get_full_formatted_prompt)
+                jeffy_second = [
+                {"role": "system", "content": "You are an AI assistant that analyzes data tables and answers questions"},
+                {"role": "user", "content": f"{get_full_formatted_prompt}"},
+                {"role": "assistant", "content": ""},
+                ]
 
-        #dataz = ast.literal_eval(function_call.split('function_data=')[1].strip())
-        #print("function_data")
-        #print(dataz[0]["highlight_symbol"])
+                chaterzzz = client.chat_completion(jeffy_second, max_tokens=700, stream=False)
+                chater_extractzz = chaterzzz.choices[0].message.content
+                
+                # Output the response
+                print("\n=== LLM Response 2===")
+                if chaterzzz:
+                    print(chater_extractzz)
+                    st.markdown(chater_extractzz)
+                    big_boy_jeffy = chater_extractzz
+                else:
+                    print("No chaterzzz response generated.")
 
-        # Bar Chart
+            elif "create_ps_price_sales_bar_chart" in chater_extract:
+                st.markdown("Trying to Create Bar Chart")
+                fig_bar = plot_bar_chart(st.session_state['ai_dataframe'], cleaned_extract)
 
+                if fig_bar:
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                    big_boy_jeffy = st.plotly_chart(fig_bar, use_container_width=True)
+                else:
+                    st.write("ERROR No data available to display in the bar chart.")
 
-    st.session_state.messages.append({"role": "assistant", "content": chater_extract})
+    st.session_state.messages.append({"role": "assistant", "content": big_boy_jeffy})
