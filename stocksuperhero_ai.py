@@ -109,12 +109,11 @@ if st.button(f"Run Vector Search {selected_stock_symbol}"):
     input_v_ps = df_dim['v_ps'][0] # Example embedding vector for v_ps
     input_v_rsi = df_dim['v_rsi'][0]   # Example embedding vector for v_rsi
     df_vector_search = get_supabase_dataframe(input_v_ps, input_v_rsi, ps_weight, rsi_weight, where_clause_1, where_clause_2, operand, match_count=400)
-    columns_to_keep = ["sym", "v_ps_string", "cos_sim", "cos_sim_v_ps", "v_rsi_string", "cos_sim_v_rsi"]
+    columns_to_keep = ["sym", "ps", "dy", "rsi", "v_ps_string", "cos_sim", "cos_sim_v_ps", "v_rsi_string", "cos_sim_v_rsi"]
     st.write("Vector Search Results")
 
     st.dataframe(df_vector_search[columns_to_keep])
-
-
+    st.session_state['ai_dataframe'] = df_vector_search[columns_to_keep]
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -153,8 +152,9 @@ if prompt := st.chat_input("Ask Stock Superhero AI"):
             print("!!!!!!!!!!!!!!!!! AUDIT FUNCTION CALL !!!!!!!!!!!!!!!!!")
             print(function_call.split("=")[1])     
             symbol = function_call.split("=")[1]  
+            cleaned_symbol = symbol.replace('"', '')
             st.markdown("Trying to Create Bar Chart")
-            fig_bar = plot_bar_chart(df_dim, symbol)
+            fig_bar = plot_bar_chart(st.session_state['ai_dataframe'], cleaned_symbol)
 
             if fig_bar:
                 st.plotly_chart(fig_bar, use_container_width=True)
